@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}BoursA - Cartographie {% endblock %}
+
+{% block head_extra %}
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-o9N1j7kP5z2X1l0LhWg6N3vfCrs5l9h5t1U0wCqk0LM="
+    crossorigin=""
+/>
+<style>
+    .map-container {
+        background: white;
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        height: 65vh;
+        max-height: 760px;
+        overflow: hidden;
+    }
+
+    #live-map {
+        width: 100%;
+        height: 100%;
+    }
+
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #ecfdf3;
+        color: #166534;
+        padding: 6px 12px;
+        border-radius: 9999px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 9999px;
+        background: #22c55e;
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.2);
+        animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(0.95); opacity: 0.7; }
+        50% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(0.95); opacity: 0.7; }
+    }
+
+
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+</style>
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o8lj0q+faJrBzJ7mrd9uayC06J0IFlG8BP9Pl7F2N8k="
+    crossorigin=""
+></script>
+{% endblock %}
+
+{% block content %}
+
+
+<div class="max-w-7xl mx-auto p-6">
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-800 mb-2">Cartographie des Utilisateurs - Abidjan</h1>
+        <p class="text-gray-600">Visualisation des utilisateurs actifs à Abidjan, mise à jour automatiquement en temps réel.</p>
+        <div class="flex items-center gap-4 mt-3">
+            <div id="status-indicator" class="status-chip">
+                <span class="status-dot"></span>
+                <span id="status-text">Suivi en direct activé</span>
+            </div>
+            <div class="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-semibold">
+                Utilisateurs actifs: <span id="active-count">{{ total_active_users|default:0 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div id="live-map"></div>
+    </div>
+
+    <!-- Section Tests Statistiques -->
+    <section class="mt-8 bg-gradient-to-br from-green-50 to-blue-50 rounded-xl shadow-lg p-8 border-2 border-green-200">
+        <div class="text-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-3">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                Tests Statistiques Disponibles
+            </h2>
+            <p class="text-gray-700 text-lg mb-2">
+                Utilisez les données de localisation collectées pour effectuer des analyses statistiques avancées
+            </p>
+            <p class="text-sm text-gray-600">
+                Les tests ci-dessous permettent d'analyser les données géographiques collectées sur la plateforme
+            </p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <a href="{% url 'core:tests' %}" class="bg-white border-2 border-green-300 rounded-xl p-5 hover:shadow-xl hover:border-green-500 transition-all transform hover:scale-105 group">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="bg-green-100 rounded-lg p-2 group-hover:bg-green-200 transition">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-bold text-lg text-gray-800">Test de Wilcoxon</h3>
+                </div>
+                <p class="text-sm text-gray-600">Comparaison de médianes pour échantillons appariés</p>
+            </a>
+            <a href="{% url 'core:tests' %}" class="bg-white border-2 border-blue-300 rounded-xl p-5 hover:shadow-xl hover:border-blue-500 transition-all transform hover:scale-105 group">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="bg-blue-100 rounded-lg p-2 group-hover:bg-blue-200 transition">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-bold text-lg text-gray-800">Test de Kruskal-Wallis</h3>
+                </div>
+                <p class="text-sm text-gray-600">Comparaison de plusieurs groupes indépendants</p>
+            </a>
+            <a href="{% url 'core:tests' %}" class="bg-white border-2 border-purple-300 rounded-xl p-5 hover:shadow-xl hover:border-purple-500 transition-all transform hover:scale-105 group">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="bg-purple-100 rounded-lg p-2 group-hover:bg-purple-200 transition">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-bold text-lg text-gray-800">Corrélation de Spearman</h3>
+                </div>
+                <p class="text-sm text-gray-600">Mesure de relations monotones</p>
+            </a>
+            <a href="{% url 'core:tests' %}" class="bg-white border-2 border-indigo-300 rounded-xl p-5 hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 group">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="bg-indigo-100 rounded-lg p-2 group-hover:bg-indigo-200 transition">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-bold text-lg text-gray-800">Test de Kolmogorov-Smirnov</h3>
+                </div>
+                <p class="text-sm text-gray-600">Comparaison de distributions</p>
+            </a>
+            <a href="{% url 'core:tests' %}" class="bg-white border-2 border-indigo-300 rounded-xl p-5 hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 group">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="bg-red-100 rounded-lg p-2 group-hover:bg-red-200 transition">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-bold text-lg text-gray-800">Test de Friedman</h3>
+                </div>
+                <p class="text-sm text-gray-600">Comparaison de groupes dépendants</p>
+            </a>
+            <a href="{% url 'core:tests' %}" class="bg-white border-2 border-yellow-300 rounded-xl p-5 hover:shadow-xl hover:border-yellow-500 transition-all transform hover:scale-105 group">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="bg-yellow-100 rounded-lg p-2 group-hover:bg-yellow-200 transition">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-bold text-lg text-gray-800">Test de Mann-Whitney</h3>
+                </div>
+                <p class="text-sm text-gray-600">Comparaison de deux groupes indépendants</p>
+            </a>
+        </div>
+        <div class="mt-6 text-center">
+            <a href="{% url 'core:tests' %}" class="inline-block bg-gradient-to-r from-green-600 to-blue-600 text-white px-8 py-3 rounded-full text-lg font-bold hover:from-green-700 hover:to-blue-700 transition transform hover:scale-105 shadow-lg">
+                Accéder à tous les tests statistiques
+            </a>
+        </div>
+    </section>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div class="stat-card">
+            <h3>Comment ça marche ?</h3>
+            <p class="text-gray-600 mt-2">
+                Après avoir donné votre consentement, le navigateur demande votre position (GPS ou réseau) puis l'envoie au serveur.
+                Les données sont sauvegardées et diffusées aux autres utilisateurs en temps réel via l'API.
+            </p>
+        </div>
+        <div class="stat-card">
+            <h3>Confidentialité</h3>
+            <p class="text-gray-600 mt-2">
+                Aucune inscription n'est requise. Un identifiant aléatoire est stocké localement pour mettre à jour votre position.
+                Vous pouvez révoquer l'accès à la localisation depuis votre navigateur à tout moment.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const initialLocations = [];
+    const apiUrl = "{% url 'core:location_api' %}";
+    // Centered on Abidjan, Côte d'Ivoire (5.3600°N, 4.0083°W)
+    const map = L.map('live-map', { zoomControl: true }).setView([5.3600, -4.0083], 12);
+    const markers = new Map();
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    function getOrCreateDeviceId() {
+        const storageKey = 'boursa_device_id';
+        try {
+            const cached = localStorage.getItem(storageKey);
+            if (cached) return cached;
+        } catch (e) {
+            console.warn('localStorage non disponible, utilisation d\'un ID temporaire');
+        }
+        
+        // Génération d'ID compatible tous navigateurs
+        var id;
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            id = crypto.randomUUID();
+        } else {
+            // Fallback pour navigateurs sans crypto.randomUUID
+            id = 'device-' + Date.now() + '-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+        
+        try {
+            localStorage.setItem(storageKey, id);
+        } catch (e) {
+            console.warn('Impossible de sauvegarder l\'ID dans localStorage');
+        }
+        return id;
+    }
+
+    const deviceId = getOrCreateDeviceId();
+
+    function markerOptions(user) {
+        const intensity = Math.max(6, (user.active_users || 1) * 2);
+        return {
+            radius: intensity,
+            color: '#ef4444',
+            fillColor: '#ef4444',
+            fillOpacity: 0.35,
+            weight: 2
+        };
+    }
+
+    function fitMapToMarkers() {
+        if (!markers.size) return;
+        const layers = [];
+        markers.forEach(({ circle }) => layers.push(circle));
+        const group = L.featureGroup(layers);
+        map.fitBounds(group.getBounds(), { padding: [18, 18], maxZoom: 15 });
+    }
+
+    function renderUsers(users) {
+        const seen = new Set();
+        users.forEach((user) => {
+            if (!user.lat || !user.lon) return;
+            const key = user.username || 'Utilisateur';
+            seen.add(key);
+            const position = [user.lat, user.lon];
+
+            const existing = markers.get(key);
+            if (existing) {
+                existing.circle.setLatLng(position).setStyle(markerOptions(user));
+                existing.label.setLatLng(position).setPopupContent(makePopup(user));
+                return;
+            }
+
+            const circle = L.circleMarker(position, markerOptions(user)).addTo(map);
+            const label = L.marker(position, { opacity: 0 })
+                .bindPopup(makePopup(user), { autoClose: false, closeOnClick: false })
+                .addTo(map);
+            label.openPopup();
+            markers.set(key, { circle, label });
+        });
+
+        // Nettoyer les marqueurs obsolètes
+        markers.forEach((value, key) => {
+            if (!seen.has(key)) {
+                map.removeLayer(value.circle);
+                map.removeLayer(value.label);
+                markers.delete(key);
+            }
+        });
+
+        fitMapToMarkers();
+    }
+
+    function makePopup(user) {
+        const ts = user.timestamp ? new Date(user.timestamp).toLocaleString() : '—';
+        return `<b>${user.username || 'Utilisateur'}</b><br/>
+                Actifs: ${user.active_users || 1}<br/>
+                Dernière MAJ: ${ts}`;
+    }
+
+    function handlePosition(position) {
+        const { latitude, longitude, accuracy } = position.coords;
+        const payload = {
+            username: deviceId,
+            lat: latitude,
+            lon: longitude,
+            accuracy: accuracy || null,
+        };
+
+        sendLocation(payload);
+    }
+
+    function fetchLocations() {
+        // Compatible tous navigateurs (Promise-based)
+        fetch(apiUrl).then(function(resp) {
+            if (!resp.ok) {
+                throw new Error('HTTP ' + resp.status);
+            }
+            return resp.json();
+        }).then(function(data) {
+            renderUsers(data.users || []);
+            // Update active count
+            const activeCount = document.getElementById('active-count');
+            if (activeCount && data.total_active !== undefined) {
+                activeCount.textContent = data.total_active;
+            }
+        }).catch(function(error) {
+            console.warn('Impossible de récupérer les positions', error);
+        });
+    }
+
+    function sendLocation(payload) {
+        // Compatible tous navigateurs (Promise-based)
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        }).catch(function(error) {
+            console.warn('Impossible d\'envoyer la position', error);
+        });
+    }
+
+    function startLiveTracking() {
+        if (!('geolocation' in navigator)) {
+            console.warn('La géolocalisation n\'est pas supportée par ce navigateur.');
+            updateStatusText('Géolocalisation non supportée', false);
+            return;
+        }
+
+        // Mise à jour continue dès qu'une nouvelle position est disponible
+        const options = {
+            enableHighAccuracy: true,
+            maximumAge: 5000,
+            timeout: 8000
+        };
+
+        watchId = navigator.geolocation.watchPosition(
+            handlePosition, 
+            function(err) {
+                console.warn('Géolocalisation refusée ou indisponible', err);
+                updateStatusText('Erreur de géolocalisation', false);
+            }, 
+            options
+        );
+
+        // Nettoyer le watcher quand l'utilisateur quitte la page
+        window.addEventListener('beforeunload', function() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+        });
+    }
+
+    function stopLiveTracking() {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+    }
+
+    function updateStatusText(text, isActive) {
+        const statusText = document.getElementById('status-text');
+        const statusIndicator = document.getElementById('status-indicator');
+        if (statusText) {
+            statusText.textContent = text;
+        }
+        if (statusIndicator) {
+            if (isActive) {
+                statusIndicator.classList.remove('bg-gray-100', 'text-gray-600');
+                statusIndicator.classList.add('bg-green-50', 'text-green-700');
+            } else {
+                statusIndicator.classList.remove('bg-green-50', 'text-green-700');
+                statusIndicator.classList.add('bg-gray-100', 'text-gray-600');
+            }
+        }
+    }
+
+    // Initialisation
+    renderUsers(initialLocations || []);
+    updateStatusText('Suivi en direct activé', true);
+    startLiveTracking();
+    fetchLocations();
+    setInterval(fetchLocations, 5000);
+</script>
+{% endblock %}

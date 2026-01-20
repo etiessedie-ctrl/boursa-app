@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+
+{% block title %}BoursA - Résultats{% endblock %}
+
+{% block head_extra %}
+  <style>
+    /* Animation simple pour les boutons déroulants */
+    summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+        summary::after {
+            content: "";
+            float: right;
+            color: gray;
+        }
+        details[open] summary::after {
+            content: "";
+        }
+    
+    /* Style pour les images */
+    .graph-container {
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .graph-container img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.25rem;
+    }
+    
+    /* Style pour les résultats */
+    .results-box {
+      background-color: #f8fafc;
+      border-left: 4px solid #3b82f6;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      font-family: 'Courier New', monospace;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    
+    /* Style pour la section vide */
+    .empty-state {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 1rem;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto w-full">
+        
+        {% if not test_name %}
+        <!-- ÉTAT VIDE : Aucun test effectué -->
+        <div class="text-center py-16">
+            <div class="empty-state p-8 mb-8 max-w-2xl mx-auto">
+                <svg class="w-24 h-24 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h1 class="text-3xl font-bold mb-4">Aucun test effectué</h1>
+                <p class="text-xl mb-6 opacity-90">Vous n'avez pas encore effectué de test statistique.</p>
+                <p class="text-lg mb-8 opacity-80">Commencez par effectuer un test pour voir vos résultats et visualisations graphiques.</p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{% url 'core:tests' %}" class="inline-block bg-white text-purple-700 px-8 py-3 rounded-full text-lg font-semibold hover:bg-gray-100 transition transform hover:scale-105">
+                        <span class="flex items-center justify-center">
+                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Effectuer un test statistique
+                        </span>
+                    </a>
+                    
+                    <a href="{% url 'core:description' %}" class="inline-block bg-purple-800 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-purple-900 transition">
+                        <span class="flex items-center justify-center">
+                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Découvrir les tests disponibles
+                        </span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Section informative -->
+            <div class="bg-white shadow rounded-lg p-8 max-w-3xl mx-auto mt-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Comment fonctionnent les tests statistiques ?</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="text-center">
+                        <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl font-bold text-blue-600">1</span>
+                        </div>
+                        <h3 class="font-semibold text-gray-800 mb-2">Téléchargez vos données</h3>
+                        <p class="text-gray-600">Importez un fichier CSV contenant vos données financières</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl font-bold text-green-600">2</span>
+                        </div>
+                        <h3 class="font-semibold text-gray-800 mb-2">Choisissez un test</h3>
+                        <p class="text-gray-600">Sélectionnez parmi plus de 15 tests statistiques différents</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl font-bold text-purple-600">3</span>
+                        </div>
+                        <h3 class="font-semibold text-gray-800 mb-2">Visualisez les résultats</h3>
+                        <p class="text-gray-600">Obtenez des résultats détaillés avec graphiques explicatifs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- ÉTAT AVEC RÉSULTATS : Test effectué -->
+        <div class="flex justify-start mb-4">
+            <a href="{% url 'core:tests' %}" class="inline-block bg-gray-200 text-gray-800 px-6 py-3 rounded-full text-lg font-semibold hover:bg-gray-300 transition">
+                <span class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Retour à la sélection du test
+                </span>
+            </a>
+        </div>
+        
+        <h1 class="text-3xl font-bold mb-2 text-gray-800">Résultats des Tests Statistiques</h1>
+        <p class="text-gray-600 mb-8">Analyse complète de vos données avec visualisations graphiques</p>
+
+        <!-- Informations générales -->
+        <section class="mb-8 bg-white shadow rounded-md p-6">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Informations générales</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-gray-700"><strong class="text-gray-800">Test effectué :</strong></p>
+                    <p class="text-lg font-semibold text-blue-600">{{ test_name }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-700"><strong class="text-gray-800">Colonne analysée :</strong></p>
+                    <p class="text-lg font-semibold text-green-600">{{ column }}</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Résultats du Test -->
+        <section class="mb-8 bg-white shadow rounded-md p-6">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Résultats du Test</h2>
+            <div class="results-box">
+                {% if results_text %}
+                    {{ results_text }}
+                {% else %}
+                    <p class="text-gray-500">Aucun résultat disponible.</p>
+                {% endif %}
+            </div>
+            
+            <!-- Interprétation -->
+            {% if results_text %}
+            <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <h3 class="text-lg font-semibold text-blue-800 mb-2">Interprétation :</h3>
+                <p class="text-blue-700">
+                    <strong>P-value :</strong> Une p-value inférieure à 0.05 indique généralement un résultat statistiquement significatif.
+                    <br>
+                    <strong>Normalité :</strong> Pour les tests de normalité, une p-value > 0.05 suggère que les données suivent une distribution normale.
+                </p>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Graphiques -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Visualisations Graphiques</h2>
+            
+            <!-- Histogramme -->
+            {% if histogram %}
+            <div class="graph-container">
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Histogramme des Données</h3>
+                <p class="text-gray-600 mb-4">Distribution des valeurs de la colonne analysée</p>
+                <img src="data:image/png;base64,{{ histogram }}" alt="Histogramme des données" class="mx-auto" />
+            </div>
+            {% endif %}
+
+            <!-- QQ Plot -->
+            {% if qqplot %}
+            <div class="graph-container">
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">QQ Plot (Quantile-Quantile)</h3>
+                <p class="text-gray-600 mb-4">Comparaison avec la distribution normale théorique</p>
+                <img src="data:image/png;base64,{{ qqplot }}" alt="QQ Plot" class="mx-auto" />
+            </div>
+            {% endif %}
+
+            <!-- Série Temporelle -->
+            {% if timeseries %}
+            <div class="graph-container">
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Série Temporelle</h3>
+                <p class="text-gray-600 mb-4">Évolution des données dans le temps</p>
+                <img src="data:image/png;base64,{{ timeseries }}" alt="Série temporelle" class="mx-auto" />
+            </div>
+            {% endif %}
+
+            {% if not histogram and not qqplot and not timeseries %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <p class="text-yellow-800">Aucun graphique disponible pour ces données.</p>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Actions -->
+        <section class="flex flex-col md:flex-row gap-4 justify-center items-center mt-8">
+            {% if can_download %}
+            <a href="{% url 'core:download_last_result' %}" class="inline-block bg-purple-600 text-white px-6 py-3 rounded-full text-lg font-semibold hover:bg-purple-700 transition">
+                <span class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Télécharger ce résultat (JSON)
+                </span>
+            </a>
+            {% endif %}
+            <a href="{% url 'core:tests' %}" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-full text-lg font-semibold hover:bg-blue-700 transition">
+                <span class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Effectuer un autre test
+                </span>
+            </a>
+            
+            <a href="{% url 'core:description' %}" class="inline-block bg-green-600 text-white px-6 py-3 rounded-full text-lg font-semibold hover:bg-green-700 transition">
+                <span class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Voir la description des tests
+                </span>
+            </a>
+            
+            <a href="{% url 'core:accueil' %}" class="inline-block bg-gray-600 text-white px-6 py-3 rounded-full text-lg font-semibold hover:bg-gray-700 transition">
+                <span class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    Retour à l'accueil
+                </span>
+            </a>
+        </section>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}BoursA - Accueil{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="{% static 'css/animations.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="flex flex-col items-center justify-center text-center min-h-screen px-4 py-6 space-y-8">
+
+    <!-- Texte d’accueil -->
+    <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 animate-fade-in-up" id="bienvenue">
+      Bienvenue sur BoursA
+    </h2>
+
+    <!-- Logo centré et agrandi -->
+    <img src="{% static 'images/boursa_logo.jpg' %}"
+         alt="Logo central"
+         class="w-56 h-56 md:w-64 md:h-64 rounded-full object-cover filter brightness-110 animate-zoom-in"
+         id="parent" />
+
+    <!-- Boutons principaux -->
+    <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
+        <a href="{% url 'core:tests' %}"
+           class="inline-block bg-green-600 text-white px-6 py-3 rounded-full text-base md:text-lg font-semibold hover:bg-green-700 transition animate-fade-in-up delay-200"
+           id="test">
+          Commencer un test statistique
+        </a>
+        <a href="{% url 'core:previsions' %}"
+           class="inline-block bg-blue-600 text-white px-6 py-3 rounded-full text-base md:text-lg font-semibold hover:bg-blue-700 transition animate-fade-in-up delay-300"
+           id="forecast">
+          Effectuer une prévision ML
+        </a>
+    </div>
+
+  </div>
+{% endblock %}

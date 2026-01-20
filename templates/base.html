@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>{% block title %}BoursA{% endblock %}</title>
+  <!-- Polyfills pour compatibilité multi-navigateurs (IE11+, Chrome, Firefox, Safari, Edge) -->
+  <script src="{% static 'js/polyfills.js' %}"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block head_extra %}{% endblock %}
+  <style>
+    /* Améliorations responsive pour le header */
+    @media (max-width: 640px) {
+      .header-logo-text {
+        font-size: 1.125rem;
+      }
+      .menu-button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+      }
+      .menu-dropdown {
+        width: 100%;
+        right: 0;
+        left: 0;
+        margin-top: 0.5rem;
+      }
+    }
+    
+    /* Menu mobile amélioré */
+    @media (max-width: 768px) {
+      .menu-dropdown {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-b from-gray-100 to-gray-200 min-h-screen flex flex-col">
+  <!-- Header amélioré avec responsive -->
+  <header class="flex items-center justify-between px-4 sm:px-6 py-3 bg-white shadow-md sticky top-0 z-50 transition-all transition-fast">
+    <!-- Logo + Nom -->
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <a href="{% url 'core:accueil' %}" class="transition-transform transition-fast hover:scale-110">
+        <img src="{% static 'images/boursa_logo.jpg' %}" alt="Logo BoursA" class="w-8 h-8 sm:w-10 sm:h-10 object-cover rounded-full shadow-sm" />
+      </a>
+      <h1 class="header-logo-text text-lg sm:text-xl md:text-2xl font-bold text-gray-800">BoursA</h1>
+    </div>
+
+    <!-- Menu déroulant amélioré -->
+    <div class="relative group">
+      <button class="menu-button px-3 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all transition-fast flex items-center gap-2">
+        <span>Menu</span>
+        <svg class="w-4 h-4 transition-transform transition-fast group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+      <div class="menu-dropdown absolute right-0 mt-2 w-48 sm:w-56 bg-white shadow-xl rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transition-base z-50 border border-gray-200">
+        <nav class="py-2">
+          <a href="{% url 'core:description' %}" class="block px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors transition-fast flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Description
+          </a>
+          <a href="{% url 'core:historiques' %}" class="block px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors transition-fast flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Historiques
+          </a>
+          <a href="{% url 'core:tests' %}" class="block px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors transition-fast flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            Tests
+          </a>
+          <a href="{% url 'core:previsions' %}" class="block px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors transition-fast flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            Prévisions ML
+          </a>
+          <a href="{% url 'core:visualisation' %}" class="block px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors transition-fast flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+            Visualisation
+          </a>
+          <a href="{% url 'core:cartographie' %}" class="block px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors transition-fast flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            Cartographie
+          </a>
+          <div class="border-t border-gray-200 my-2"></div>
+          {% if user.is_authenticated %}
+            <a href="{% url 'accounts:profile' %}" class="block px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors transition-fast flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              Profil ({{ user.username }})
+            </a>
+            {% if user.is_staff %}
+            <a href="{% url 'admin:index' %}" class="block px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors transition-fast flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+              Administration
+            </a>
+            {% endif %}
+            <a href="{% url 'accounts:logout' %}" class="block px-4 py-2.5 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors transition-fast flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+              Déconnexion
+            </a>
+          {% else %}
+            <a href="{% url 'accounts:login' %}" class="block px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors transition-fast flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+              Connexion
+            </a>
+            <a href="{% url 'accounts:register' %}" class="block px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors transition-fast flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+              Inscription
+            </a>
+          {% endif %}
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section centrale améliorée -->
+  <main class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8 animate-fade-in">
+    <div class="w-full max-w-7xl">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- Pied de page amélioré -->
+  <footer class="bg-gray-900 text-white py-6 sm:py-8 mt-auto">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 gap-4">
+        <div class="flex flex-col items-center sm:items-start text-center sm:text-left">
+          <span class="font-semibold mb-1">GitHub :</span>
+          <a href="https://github.com/YourBoursA" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition-colors transition-fast underline">https://github.com/YourBoursA</a>
+        </div>
+        <div class="flex flex-col items-center text-center">
+          <span class="font-semibold mb-1">Numéro :</span>
+          <p class="text-gray-400">0171297119</p>
+        </div>
+        <div class="flex flex-col items-center sm:items-end text-center sm:text-right">
+          <span class="font-semibold mb-1">Adresse :</span>
+          <p class="text-gray-400">Abidjan, Côte d'Ivoire</p>
+        </div>
+      </div>
+      <div class="mt-6 pt-6 border-t border-gray-800 text-center text-sm text-gray-400">
+        <p>&copy; 2025 BoursA. Tous droits réservés.</p>
+      </div>
+    </div>
+  </footer>
+  <!-- Consentement géolocalisation global (overlay affiché dès l'entrée sur le site) -->
+  <script>
+    (function(){
+      const consentKey = 'bousa_geolocation_consent';
+
+      function createOverlay(){
+        if (document.getElementById('bousa-consent-overlay')) return;
+        const overlay = document.createElement('div');
+        overlay.id = 'bousa-consent-overlay';
+        Object.assign(overlay.style, {position:'fixed', left:0, top:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:99999});
+
+        const box = document.createElement('div');
+        Object.assign(box.style, {background:'#fff', padding:'18px', borderRadius:'8px', maxWidth:'560px', width:'90%', boxSizing:'border-box'});
+        box.innerHTML = `
+          <h3 style="margin:0 0 8px">Autoriser la collecte de localisation</h3>
+          <p style="margin:0 0 12px">Cette application collecte votre position pour l'afficher sur la carte en temps réel. Les données sont utilisées uniquement pour la visualisation en temps réel et restent locales au serveur.</p>
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
+            <button id="bousa-decline" style="padding:8px 12px; border-radius:6px; background:#eee;">Refuser</button>
+            <button id="bousa-accept" style="padding:8px 12px; border-radius:6px; background:#2563eb; color:#fff;">Accepter</button>
+          </div>
+        `;
+
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        document.getElementById('bousa-accept').addEventListener('click', ()=>{
+          localStorage.setItem(consentKey, 'granted');
+          document.body.removeChild(overlay);
+          window.dispatchEvent(new CustomEvent('bousaConsentChanged', {detail: 'granted'}));
+        });
+        document.getElementById('bousa-decline').addEventListener('click', ()=>{
+          localStorage.setItem(consentKey, 'denied');
+          document.body.removeChild(overlay);
+          window.dispatchEvent(new CustomEvent('bousaConsentChanged', {detail: 'denied'}));
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', ()=>{
+        try{
+          const current = localStorage.getItem(consentKey);
+          if (!current) createOverlay();
+        }catch(e){/* localStorage peut être désactivé */}
+      });
+    })();
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

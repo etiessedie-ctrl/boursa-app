@@ -1,0 +1,714 @@
+{% extends "base.html" %}
+
+{% block title %}BoursA - Tests Statistiques{% endblock %}
+
+{% block head_extra %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+    .step-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    .step-active {
+        border-left-color: #10b981;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .loading-spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #10b981;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-left: 10px;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <a href="{% url 'core:accueil' %}" class="text-blue-500 hover:text-blue-700 flex items-center mb-6">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Retour à l'accueil
+    </a>
+
+    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Effectuer un Test Statistique</h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Colonne de navigation (Étapes) -->
+        <div class="lg:col-span-1 space-y-4">
+            <div id="step-1-card" class="step-card bg-white p-6 rounded-lg shadow step-active">
+                <h2 class="text-xl font-semibold text-gray-800">Étape 1: Importation des Données</h2>
+                <p class="text-sm text-gray-500">Téléchargez votre fichier CSV ou Excel.</p>
+            </div>
+            <div id="step-2-card" class="step-card bg-white p-6 rounded-lg shadow opacity-50">
+                <h2 class="text-xl font-semibold text-gray-800">Étape 2: Sélection du Test et des Colonnes</h2>
+                <p class="text-sm text-gray-500">Choisissez le test et les variables à analyser.</p>
+            </div>
+            <div id="step-3-card" class="step-card bg-white p-6 rounded-lg shadow opacity-50">
+                <h2 class="text-xl font-semibold text-gray-800">Étape 3: Résultats</h2>
+                <p class="text-sm text-gray-500">Visualisez l'interprétation et les graphiques.</p>
+            </div>
+        </div>
+
+        <!-- Colonne de contenu (Formulaires) -->
+        <div class="lg:col-span-2">
+            <!-- Étape 1: Importation des Données -->
+            <div id="step-1-content" class="bg-white p-8 rounded-lg shadow-xl">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">1. Choisir le mode d'import</h2>
+
+                <div class="mb-6 flex flex-col gap-3">
+                    <button id="choose-local" type="button" class="w-full px-5 py-4 border-2 rounded-lg font-semibold bg-white hover:bg-green-50 focus:ring-2 focus:ring-green-500 text-left shadow-sm flex items-center gap-3">
+                        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-100 text-green-700 font-bold">A</span>
+                        <div>
+                            <div class="text-lg">Importer un fichier local</div>
+                            <div class="text-sm text-gray-500">CSV / Excel depuis votre ordinateur</div>
+                        </div>
+                    </button>
+                    <button id="choose-api" type="button" class="w-full px-5 py-4 border-2 rounded-lg font-semibold bg-white hover:bg-blue-50 focus:ring-2 focus:ring-blue-500 text-left shadow-sm flex items-center gap-3">
+                        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold">B</span>
+                        <div>
+                            <div class="text-lg">Importer via API boursière</div>
+                            <div class="text-sm text-gray-500">Yahoo Finance ou Alpha Vantage</div>
+                        </div>
+                    </button>
+                </div>
+
+                <div id="import-local-panel" class="p-4 border rounded-lg bg-gray-50 hidden">
+                    <p class="font-semibold mb-2">Option : Fichier local</p>
+                    <form id="upload-form" method="POST" action="{% url 'core:upload_file' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="data_file">
+                            Fichier de données (CSV, Excel)
+                        </label>
+                        <input type="file" name="data_file" id="data_file" 
+                               accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+                               class="w-full px-3 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 mb-3">
+                        <p class="text-xs text-gray-500 mt-1 mb-3">Formats acceptés : CSV, XLSX, XLS (max 16 MB)</p>
+                        <button type="submit" id="upload-button" class="bg-green-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-green-700 transition w-full">
+                            Analyser le fichier
+                        </button>
+                    </form>
+                </div>
+
+                <div id="import-api-panel" class="p-4 border rounded-lg bg-gray-50 hidden">
+                    <p class="font-semibold mb-2">Option : API boursière</p>
+                    <form id="api-fetch-form">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="api_source">Source</label>
+                        <select id="api_source" name="source" class="w-full px-3 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3">
+                            <option value="">Choisir...</option>
+                            <option value="yahoo">Yahoo Finance (gratuit, pas de clé requise)</option>
+                            <option value="alpha_vantage">Alpha Vantage (gratuit, clé requise)</option>
+                            <option value="iex_cloud">IEX Cloud (gratuit, clé requise)</option>
+                            <option value="polygon">Polygon.io (gratuit/freemium, clé requise)</option>
+                        </select>
+
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="api_symbol">Ticker (ex: AAPL, BTC-USD)</label>
+                        <input type="text" id="api_symbol" name="symbol" placeholder="AAPL" class="w-full px-3 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3">
+
+                        <!-- Interval removed per request -->
+
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="api_key">Clé API (Alpha Vantage / IEX Cloud)</label>
+                        <input type="text" id="api_key" name="api_key" placeholder="Optionnel si la clé est définie dans .env" class="w-full px-3 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-blue-700 transition w-full">
+                            Importer via API
+                        </button>
+                        <p class="text-xs text-gray-500 mt-2">Yahoo: 1d/1h/5m/1wk/1mo. Alpha Vantage: daily/weekly/monthly. IEX Cloud: 1d/1w/1mo. Polygon: daily.</p>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Étape 2: Sélection du Test et des Colonnes (Initialement caché) -->
+            <div id="step-2-content" class="bg-white p-8 rounded-lg shadow-xl mt-8 hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">2. Sélectionner le Test et les Colonnes</h2>
+                    <button id="back-to-step-1-button" type="button" class="text-sm text-blue-600 hover:text-blue-800 flex items-center transition">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Changer de fichier
+                    </button>
+                </div>
+                
+                <!-- Affichage des données -->
+                <div class="mb-6 p-4 bg-gray-50 border rounded-lg">
+                    <h3 class="text-xl font-semibold mb-3">Aperçu des données (<span id="filename-display" class="text-blue-600"></span>)</h3>
+                    <p class="text-sm text-gray-600 mb-2">Colonnes détectées : <span id="columns-list" class="font-mono text-xs"></span></p>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100">
+                                <tr id="data-header"></tr>
+                            </thead>
+                            <tbody id="data-preview" class="bg-white divide-y divide-gray-200">
+                                <!-- Les 5 premières lignes seront insérées ici -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <form id="test-form" method="POST" action="{% url 'core:run_test' %}">
+                    {% csrf_token %}
+                    <!-- Sélection du Test -->
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="test_type">
+                            Sélectionner le Test Statistique
+                        </label>
+                        <select name="test_type" id="test_type" required
+                                class="w-full px-3 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="">-- Choisir un test --</option>
+                            <optgroup label="Tests Non Paramétriques">
+                                <option value="wilcoxon">Test de Wilcoxon (2 échantillons appariés)</option>
+                                <option value="mannwhitney">Test de Mann-Whitney (2 groupes indépendants)</option>
+                                <option value="kruskal">Test de Kruskal-Wallis (K groupes indépendants)</option>
+                                <option value="friedman">Test de Friedman (K échantillons appariés)</option>
+                                <option value="spearman">Corrélation de Spearman (2 variables)</option>
+                            </optgroup>
+                            <optgroup label="Tests de Normalité">
+                                <option value="kolmogorov_smirnov">Test de Kolmogorov-Smirnov (Normalité)</option>
+                                <option value="shapiro_wilk">Test de Shapiro-Wilk (Normalité)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <!-- Sélection des Colonnes -->
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">
+                            Sélectionner la ou les Colonnes à Analyser
+                        </label>
+                        <div id="column-selection-area" class="space-y-2 p-4 border rounded-lg bg-white">
+                            <p class="text-gray-500">Les options de colonnes apparaîtront ici après l'analyse du fichier.</p>
+                        </div>
+                        <p id="column-hint" class="text-sm text-blue-600 mt-2">Sélectionnez d'abord un test pour voir les exigences.</p>
+                    </div>
+
+                    <button type="submit" id="run-test-button" class="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Lancer le Test
+                    </button>
+                </form>
+            </div>
+
+            <!-- Étape 3: Résultats (Initialement caché) -->
+            <div id="step-3-content" class="bg-white p-8 rounded-lg shadow-xl mt-8 hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">3. Résultats du Test Statistique</h2>
+                    <button id="back-to-step-2-button" type="button" class="text-sm text-blue-600 hover:text-blue-800 flex items-center transition">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Modifier la sélection
+                    </button>
+                </div>
+
+                <!-- Affichage des résultats -->
+                <div id="results-container" class="space-y-6">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                        <h3 class="text-xl font-semibold text-green-800 mb-4">Test exécuté avec succès !</h3>
+                        <div id="test-results" class="space-y-3">
+                            <!-- Les résultats seront insérés ici par JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Boutons d'action -->
+                    <div class="flex space-x-4">
+                        <a href="{% url 'core:resultats' %}" class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition">
+                            Voir les résultats détaillés
+                        </a>
+                        <button id="export-results-button" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+                            Exporter les résultats
+                        </button>
+                        <button id="new-test-button" class="bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-700 transition">
+                            Nouveau test
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ÉTAT GLOBAL DE L'APPLICATION
+    let global_columns = {{ file_columns | safe }};
+    let global_filename = '{{ current_file }}';
+    let global_dtypes = {{ file_dtypes | safe }};
+    let global_preview = [];
+    let importMode = null;
+
+    // DÉFINITION DES TESTS DISPONIBLES
+    const test_requirements = {
+        'wilcoxon': { 
+            count: 2, 
+            type: 'appariés', 
+            hint: 'Ce test compare deux échantillons appariés (exactement 2 colonnes).' 
+        },
+        'mannwhitney': { 
+            count: 2, 
+            type: 'indépendants', 
+            hint: 'Ce test compare deux groupes indépendants (exactement 2 colonnes).' 
+        },
+        'kruskal': { 
+            count: '>=2', 
+            type: 'indépendants', 
+            hint: 'Ce test compare K groupes indépendants (au moins 2 colonnes).' 
+        },
+        'spearman': { 
+            count: 2, 
+            type: 'corrélation', 
+            hint: 'Ce test mesure la corrélation de rang entre deux variables (exactement 2 colonnes).' 
+        },
+        'friedman': { 
+            count: '>=2', 
+            type: 'appariés', 
+            hint: 'Ce test compare K échantillons appariés (au moins 2 colonnes).' 
+        },
+        'kolmogorov_smirnov': { 
+            count: 1, 
+            type: 'distribution', 
+            hint: 'Ce test vérifie si une colonne suit une distribution normale (1 colonne).' 
+        },
+        'shapiro_wilk': { 
+            count: 1, 
+            type: 'distribution', 
+            hint: 'Ce test vérifie la normalité d\'une distribution (1 colonne, plus puissant que K-S).' 
+        },
+    };
+
+    // FONCTIONS UTILITAIRES
+    
+    function updateStep(step) {
+        // Mise à jour visuelle des cartes d'étapes
+        $('#step-1-card').removeClass('step-active opacity-50').addClass(step === 1 ? 'step-active' : 'opacity-50');
+        $('#step-2-card').removeClass('step-active opacity-50').addClass(step === 2 ? 'step-active' : 'opacity-50');
+        $('#step-3-card').removeClass('step-active opacity-50').addClass(step === 3 ? 'step-active' : 'opacity-50');
+
+        // Affichage conditionnel du contenu
+        $('#step-1-content').toggle(step === 1);
+        $('#step-2-content').toggle(step === 2);
+        $('#step-3-content').toggle(step === 3);
+    }
+
+    function generateColumnCheckboxes(columns) {
+        let html = '';
+        columns.forEach(col => {
+            const dtype = global_dtypes[col] || 'inconnu';
+            html += `
+                <label class="inline-flex items-center mr-4 mb-2 cursor-pointer hover:bg-gray-50 p-2 rounded transition">
+                    <input type="checkbox" name="selected_columns" value="${col}" class="form-checkbox h-5 w-5 text-green-600 rounded">
+                    <span class="ml-2 text-gray-700">${col} <span class="text-xs text-gray-500">(${dtype})</span></span>
+                </label>
+            `;
+        });
+        $('#column-selection-area').html(html);
+    }
+
+    function checkTestValidity(test, colCount) {
+        const req = test_requirements[test];
+        const runButton = $('#run-test-button');
+
+        if (!req) {
+            runButton.prop('disabled', true);
+            return false;
+        }
+
+        let isValid = false;
+        if (req.count === 1) {
+            isValid = colCount === 1;
+        } else if (req.count === 2) {
+            isValid = colCount === 2;
+        } else if (req.count === '>=2') {
+            isValid = colCount >= 2;
+        }
+
+        runButton.prop('disabled', !isValid);
+        
+        if (isValid) {
+            runButton.html('Lancer le Test');
+        } else {
+            if (typeof req.count === 'number') {
+                runButton.text('Sélectionnez exactement ' + req.count + ' colonne(s)');
+            } else {
+                runButton.text('Sélectionnez au moins 2 colonnes');
+            }
+        }
+
+        return isValid;
+    }
+
+    function loadInitialState() {
+        // Toujours commencer par l'étape 1 (choix du mode), mais préremplir si des données existent
+        updateStep(1);
+        $('#back-to-step-1-button').hide();
+
+        if (global_filename && global_columns && global_columns.length > 0) {
+            $('#filename-display').text(global_filename);
+
+            let columnsListHtml = '';
+            global_columns.forEach(col => {
+                const dtype = global_dtypes[col] || 'inconnu';
+                columnsListHtml += '<span class="bg-gray-200 p-1 rounded mr-2">' + col + ' (' + dtype + ')</span>';
+            });
+            $('#columns-list').html(columnsListHtml);
+
+            let headerHtml = '';
+            global_columns.forEach(col => {
+                headerHtml += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">' + col + '</th>';
+            });
+            $('#data-header').html(headerHtml);
+
+            $('#data-preview').html(
+                '<tr><td colspan="' + global_columns.length + '" class="text-center py-4 text-gray-500">Aperçu non disponible (fichier chargé précédemment). Uploadez à nouveau pour voir les données.</td></tr>'
+            );
+
+            generateColumnCheckboxes(global_columns);
+        }
+    }
+
+    // GESTION DES ÉVÉNEMENTS
+
+    // Bouton "Changer de fichier" - Retour à l'étape 1
+    $('#back-to-step-1-button').on('click', function() {
+        const btn = $(this);
+        btn.prop('disabled', true).html('Réinitialisation...');
+        
+        $.ajax({
+            url: '{% url "core:clear_session_file" %}',
+            type: 'POST',
+            success: function() {
+                // Réinitialisation de l'état global
+                global_filename = '';
+                global_columns = [];
+                global_dtypes = {};
+                global_preview = [];
+                
+                // Réinitialisation du formulaire
+                $('#upload-form')[0].reset();
+                $('#test-form')[0].reset();
+                
+                // Retour à l'étape 1
+                updateStep(1);
+                $('#back-to-step-1-button').hide();
+            },
+            error: function(xhr, status, error) {
+                alert('Erreur lors de la réinitialisation: ' + error);
+                btn.prop('disabled', false).html('Changer de fichier');
+            }
+        });
+    });
+
+    // Sélection du mode d'import
+    function selectImportMode(mode) {
+        importMode = mode;
+        $('#import-local-panel').toggle(mode === 'local');
+        $('#import-api-panel').toggle(mode === 'api');
+        $('#data_file').prop('required', mode === 'local');
+        $('#api_source, #api_symbol').prop('required', mode === 'api');
+        $('#choose-local').toggleClass('bg-green-50 border-green-400', mode === 'local');
+        $('#choose-api').toggleClass('bg-blue-50 border-blue-400', mode === 'api');
+    }
+
+    $('#choose-local').on('click', function() { selectImportMode('local'); });
+    $('#choose-api').on('click', function() { selectImportMode('api'); });
+
+    function hydrateDataPreview(response) {
+        global_columns = response.columns;
+        global_filename = response.filename;
+        global_dtypes = response.dtypes;
+        global_preview = response.preview || [];
+
+        $('#filename-display').text(global_filename);
+
+        let columnsListHtml = '';
+        global_columns.forEach(col => {
+            const dtype = global_dtypes[col] || 'inconnu';
+            columnsListHtml += '<span class="bg-gray-200 p-1 rounded mr-2">' + col + ' (' + dtype + ')</span>';
+        });
+        $('#columns-list').html(columnsListHtml);
+
+        let headerHtml = '';
+        global_columns.forEach(col => {
+            headerHtml += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">' + col + '</th>';
+        });
+        $('#data-header').html(headerHtml);
+
+        let bodyHtml = '';
+        if (response.preview) {
+            response.preview.forEach(row => {
+                bodyHtml += '<tr>';
+                row.forEach(cell => {
+                    bodyHtml += '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">' + cell + '</td>';
+                });
+                bodyHtml += '</tr>';
+            });
+        }
+        $('#data-preview').html(bodyHtml || '<tr><td colspan="' + global_columns.length + '" class="text-center py-4 text-gray-500">Aperçu non disponible.</td></tr>');
+
+        generateColumnCheckboxes(global_columns);
+        updateStep(2);
+        $('#back-to-step-1-button').show();
+        $('#step-2-content')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Fonction pour obtenir le token CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Soumission du formulaire d'upload
+    $('#upload-form').on('submit', function(e) {
+        e.preventDefault();
+        if (importMode !== 'local') {
+            alert('Choisissez d\'abord le mode "Fichier local".');
+            return;
+        }
+        const formData = new FormData(this);
+        const button = $('#upload-button');
+        
+        // Récupérer le token CSRF (depuis le formulaire ou les cookies)
+        const csrftoken = $('[name=csrfmiddlewaretoken]').val() || getCookie('csrftoken');
+        
+        // Indicateur de chargement
+        button.prop('disabled', true).html('Analyse en cours... <span class="loading-spinner"></span>');
+
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: csrftoken ? {'X-CSRFToken': csrftoken} : {},
+            success: function(response) {
+                if (response.success) {
+                    hydrateDataPreview(response);
+                } else {
+                    alert('Erreur: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                let errorMsg = 'Erreur lors de l\'upload: ';
+                if (xhr.status === 403) {
+                    errorMsg += 'Accès refusé (CSRF). Veuillez rafraîchir la page et réessayer.';
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg += xhr.responseJSON.message;
+                } else {
+                    errorMsg += error;
+                }
+                alert(errorMsg);
+            },
+            complete: function() {
+                button.prop('disabled', false).html('Analyser le fichier');
+            }
+        });
+    });
+
+    // Changement de test sélectionné
+    $('#test_type').on('change', function() {
+        const selectedTest = $(this).val();
+        const req = test_requirements[selectedTest];
+        const hint = $('#column-hint');
+        const selectedCols = $('input[name="selected_columns"]:checked').length;
+
+        if (req) {
+            hint.html(req.hint);
+            checkTestValidity(selectedTest, selectedCols);
+        } else {
+            hint.html('Sélectionnez d\'abord un test pour voir les exigences.');
+            $('#run-test-button').prop('disabled', true);
+        }
+    });
+
+    // Changement de sélection des colonnes
+    $(document).on('change', 'input[name="selected_columns"]', function() {
+        const selectedTest = $('#test_type').val();
+        const selectedCols = $('input[name="selected_columns"]:checked').length;
+        checkTestValidity(selectedTest, selectedCols);
+    });
+
+    // Soumission du formulaire de test
+    $('#test-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const selectedTest = $('#test_type').val();
+        const selectedCols = $('input[name="selected_columns"]:checked').map(function() {
+            return this.value;
+        }).get();
+
+        if (!selectedTest || selectedCols.length === 0) {
+            alert('Veuillez sélectionner un test et au moins une colonne.');
+            return false;
+        }
+
+        // Validation finale
+        const req = test_requirements[selectedTest];
+        let isValid = false;
+        
+        if (req.count === 1) {
+            isValid = selectedCols.length === 1;
+        } else if (req.count === 2) {
+            isValid = selectedCols.length === 2;
+        } else if (req.count === '>=2') {
+            isValid = selectedCols.length >= 2;
+        }
+
+        if (!isValid) {
+            alert('Le nombre de colonnes sélectionnées ne correspond pas aux exigences du test.');
+            return false;
+        }
+
+        // Préparer les données pour l'envoi AJAX
+        const testData = {
+            test_type: selectedTest,
+            columns: selectedCols
+        };
+        
+        // Récupérer le token CSRF
+        const csrftoken = $('[name=csrfmiddlewaretoken]').val() || getCookie('csrftoken');
+        
+        const runButton = $('#run-test-button');
+        runButton.prop('disabled', true).text('Exécution en cours...');
+        
+        // Envoyer via AJAX
+        $.ajax({
+            url: '{% url "core:run_test" %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(testData),
+            headers: csrftoken ? {'X-CSRFToken': csrftoken} : {},
+            success: function(response) {
+                if (response.success) {
+                    const result = response.result;
+                    
+                    // Générer l'affichage des résultats
+                    let resultsHtml = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="bg-white p-4 rounded-lg border">
+                                <h4 class="font-semibold text-gray-800">Informations générales</h4>
+                                <p><strong>Test:</strong> ${result.test_name || 'N/A'}</p>
+                                <p><strong>Description:</strong> ${result.description || 'N/A'}</p>
+                                ${result.sample_size ? `<p><strong>Taille d'échantillon:</strong> ${result.sample_size}</p>` : ''}
+                                ${result.num_groups ? `<p><strong>Nombre de groupes:</strong> ${result.num_groups}</p>` : ''}
+                            </div>
+                            <div class="bg-white p-4 rounded-lg border">
+                                <h4 class="font-semibold text-gray-800">Résultats statistiques</h4>
+                                ${result.statistic !== undefined ? `<p><strong>Statistique:</strong> ${result.statistic.toFixed(4)}</p>` : ''}
+                                ${result.p_value !== undefined ? `<p><strong>P-valeur:</strong> ${result.p_value.toFixed(4)}</p>` : ''}
+                                ${result.correlation_coefficient !== undefined ? `<p><strong>Coefficient de corrélation:</strong> ${result.correlation_coefficient.toFixed(4)}</p>` : ''}
+                                ${result.correlation_strength ? `<p><strong>Force de corrélation:</strong> ${result.correlation_strength}</p>` : ''}
+                                ${result.normality_assessment ? `<p><strong>Évaluation de normalité:</strong> ${result.normality_assessment}</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border">
+                            <h4 class="font-semibold text-gray-800">Interprétation</h4>
+                            <p class="text-gray-700">${result.interpretation || result.significance || 'N/A'}</p>
+                            ${result.alpha ? `<p class="text-sm text-gray-500 mt-2">Seuil de significativité (α): ${result.alpha}</p>` : ''}
+                        </div>
+                    `;
+                    
+                    $('#test-results').html(resultsHtml);
+                    updateStep(3);
+                    $('#step-3-content')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    alert('Erreur: ' + (response.message || 'Erreur inconnue'));
+                }
+            },
+            error: function(xhr, status, error) {
+                let errorMsg = 'Erreur lors de l\'exécution du test: ';
+                if (xhr.status === 403) {
+                    errorMsg += 'Accès refusé (CSRF). Veuillez rafraîchir la page et réessayer.';
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg += xhr.responseJSON.message;
+                } else {
+                    errorMsg += error;
+                }
+                alert(errorMsg);
+            },
+            complete: function() {
+                runButton.prop('disabled', false).text('Lancer le Test');
+            }
+        });
+    });
+
+    // Import API: interval removed (no dynamic interval selection)
+
+    $('#api-fetch-form').on('submit', function(e) {
+        e.preventDefault();
+        if (importMode !== 'api') {
+            alert('Sélectionnez le mode "API boursière" pour cette action.');
+            return;
+        }
+        const button = $('#api-fetch-form button[type="submit"]');
+        button.prop('disabled', true).text('Import en cours...');
+
+        const payload = {
+            source: $('#api_source').val(),
+            symbol: $('#api_symbol').val(),
+            api_key: $('#api_key').val() || null
+        };
+
+        $.ajax({
+            url: '{% url "core:api_fetch" %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function(response) {
+                button.prop('disabled', false).text('Importer via API');
+                if (response.success) {
+                    hydrateDataPreview(response);
+                } else {
+                    alert(response.message || 'Erreur lors de l\'import API.');
+                }
+            },
+            error: function() {
+                button.prop('disabled', false).text('Importer via API');
+                alert('Erreur lors de l\'import API. Veuillez réessayer.');
+            }
+        });
+    });
+
+    // Bouton "Modifier la sélection" - Retour à l'étape 2
+    $('#back-to-step-2-button').on('click', function() {
+        updateStep(2);
+        $('#step-2-content')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Bouton "Nouveau test" - Retour à l'étape 2 et réinitialisation
+    $('#new-test-button').on('click', function() {
+        $('#test-form')[0].reset();
+        $('#run-test-button').prop('disabled', true);
+        updateStep(2);
+        $('#step-2-content')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Bouton "Exporter les résultats" - Fonctionnalité basique
+    $('#export-results-button').on('click', function() {
+        const resultsText = $('#test-results').text();
+        const blob = new Blob([resultsText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'resultats_test_statistique.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+</script>
+{% endblock %}

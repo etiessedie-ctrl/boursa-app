@@ -1,0 +1,740 @@
+{% extends "base.html" %}
+
+{% block title %}BoursA - Historiques{% endblock %}
+
+{% block head_extra %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        .test-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .test-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-normalite { border-left-color: #3b82f6; }
+        .test-moyenne { border-left-color: #10b981; }
+        .test-variance { border-left-color: #f59e0b; }
+        .test-non-param { border-left-color: #8b5cf6; }
+        .test-temporel { border-left-color: #ef4444; }
+
+        .forecast-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .forecast-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+        }
+
+        .badge-normalite { background-color: #dbeafe; color: #1e40af; }
+        .badge-moyenne { background-color: #d1fae5; color: #065f46; }
+        .badge-variance { background-color: #fef3c7; color: #92400e; }
+        .badge-non-param { background-color: #ede9fe; color: #5b21b6; }
+        .badge-temporel { background-color: #fee2e2; color: #991b1b; }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 1rem;
+        }
+
+        .conclusion-positif { background-color: #d1fae5; color: #065f46; }
+        .conclusion-negatif { background-color: #fee2e2; color: #991b1b; }
+        .conclusion-neutre { background-color: #fef3c7; color: #92400e; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            width: 80%;
+            max-width: 800px;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .tab-button:not(.active) {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .tab-button:not(.active):hover {
+            background-color: #e5e7eb;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- Section principale -->
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- En-tête de la page -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-4">
+                    <h1 class="text-3xl font-bold text-gray-800">Historiques</h1>
+                    <div class="inline-flex rounded-lg overflow-hidden border border-gray-200" role="tablist" aria-label="Type d'historique">
+                        <button id="btn-tests" type="button" class="tab-button px-6 py-3 font-medium active" role="tab" aria-selected="true" aria-controls="tests-panel">
+                            <i class="fas fa-chart-bar mr-2"></i>Tests Statistiques
+                        </button>
+                        <button id="btn-forecasts" type="button" class="tab-button px-6 py-3 font-medium" role="tab" aria-selected="false" aria-controls="forecasts-panel">
+                            <i class="fas fa-chart-line mr-2"></i>Prévisions ML
+                        </button>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <a href="{% url 'core:tests' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-plus mr-2"></i>Nouveau Test
+                    </a>
+                    <a href="{% url 'core:previsions' %}" class="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition">
+                        <i class="fas fa-chart-line mr-2"></i>Nouvelle Prévision
+                    </a>
+                </div>
+            </div>
+            <p class="text-gray-600">Visualisez, gérez et exportez vos historiques de tests statistiques et de prévisions ML</p>
+        </div>
+
+        <!-- Panel Tests Statistiques -->
+        <div id="tests-panel" class="tab-panel" role="tabpanel" aria-labelledby="btn-tests">
+            {% if total_tests == 0 %}
+            <!-- État vide - Aucun test effectué -->
+            <div class="text-center py-16 bg-white rounded-2xl shadow-lg">
+                <div class="max-w-md mx-auto">
+                    <div class="w-24 h-24 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-chart-bar text-blue-600 text-4xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Aucun test dans l'historique</h2>
+                    <p class="text-gray-600 mb-8">Vous n'avez pas encore effectué de tests statistiques. Commencez par analyser vos données.</p>
+                    <div class="space-y-4">
+                        <a href="{% url 'core:tests' %}" class="inline-block bg-blue-600 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-blue-700 transition">
+                            <i class="fas fa-play mr-2"></i>Effectuer un premier test
+                        </a>
+                        <br>
+                        <a href="{% url 'core:description' %}" class="inline-block bg-gray-200 text-gray-800 px-6 py-2 rounded-full hover:bg-gray-300 transition">
+                            <i class="fas fa-book mr-2"></i>Découvrir les tests disponibles
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Statistiques générales des tests -->
+            <div id="tests-stats" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card p-6">
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <i class="fas fa-chart-bar text-3xl opacity-80"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm opacity-90">Tests totaux</p>
+                            <p class="text-2xl font-bold">{{ total_tests }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <div class="flex items-center">
+                        <div class="mr-4 text-green-600">
+                            <i class="fas fa-check-circle text-3xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Tests significatifs</p>
+                            <p class="text-2xl font-bold text-gray-800" id="significantTests">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <div class="flex items-center">
+                        <div class="mr-4 text-blue-600">
+                            <i class="fas fa-calendar-alt text-3xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Dernier test</p>
+                            <p class="text-lg font-bold text-gray-800" id="lastTestDate">{% if history %}{{ history.0.timestamp }}{% else %}N/A{% endif %}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <div class="flex items-center">
+                        <div class="mr-4 text-purple-600">
+                            <i class="fas fa-file-csv text-3xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Fichiers analysés</p>
+                            <p class="text-2xl font-bold text-gray-800" id="uniqueFiles">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Outils de gestion des tests -->
+            <div id="tests-tools" class="mb-8 bg-white rounded-xl shadow p-6">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">Gérer l'historique des tests</h3>
+                        <p class="text-gray-600 text-sm">Exportez ou nettoyez vos données de test</p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <div class="relative group">
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center">
+                                <i class="fas fa-download mr-2"></i> Exporter
+                                <i class="fas fa-chevron-down ml-2"></i>
+                            </button>
+                            <div class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                                <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-t-lg">
+                                    <i class="fas fa-file-code mr-2"></i> JSON
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-file-pdf mr-2 text-red-600"></i> PDF
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-b-lg">
+                                    <i class="fas fa-file-excel mr-2 text-green-600"></i> Excel
+                                </a>
+                            </div>
+                        </div>
+                        <button onclick="showClearTestsConfirmation()" class="bg-red-100 text-red-800 px-4 py-2 rounded-lg hover:bg-red-200 transition flex items-center">
+                            <i class="fas fa-trash-alt mr-2"></i> Tout effacer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtres des tests -->
+                <div id="filtersSection" class="mt-6 hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Type de test</label>
+                            <select id="filterType" class="w-full p-2 border rounded">
+                                <option value="all">Tous les types</option>
+                                <option value="normalite">Tests de normalité</option>
+                                <option value="moyenne">Tests de moyenne</option>
+                                <option value="variance">Tests de variance</option>
+                                <option value="non-param">Tests non paramétriques</option>
+                                <option value="temporel">Séries temporelles</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Conclusion</label>
+                            <select id="filterConclusion" class="w-full p-2 border rounded">
+                                <option value="all">Toutes les conclusions</option>
+                                <option value="positif">Significatif</option>
+                                <option value="negatif">Non significatif</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Période</label>
+                            <select id="filterPeriod" class="w-full p-2 border rounded">
+                                <option value="all">Toute période</option>
+                                <option value="today">Aujourd'hui</option>
+                                <option value="week">Cette semaine</option>
+                                <option value="month">Ce mois</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end mt-4">
+                        <button onclick="applyFilters()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                            Appliquer les filtres
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graphique de visualisation (Tests) -->
+            <div id="tests-section" class="mb-8 bg-white rounded-xl shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Distribution des tests</h3>
+                <div class="h-64">
+                    <canvas id="testDistributionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Liste des tests -->
+            <div id="tests-list-section" class="mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-800">Tous les tests effectués</h3>
+                    <span class="text-gray-600" id="testCount">{{ total_tests }} tests</span>
+                </div>
+
+                <div class="space-y-4" id="testList">
+                    {% for test in history %}
+                    <div class="test-card bg-white rounded-xl shadow p-6
+                        {% if test.test_type == 'univarie' %} test-normalite
+                        {% elif test.test_name in moyenne_tests %} test-moyenne
+                        {% elif test.test_name in variance_tests %} test-variance
+                        {% elif test.test_name in non_param_tests %} test-non-param
+                        {% elif test.test_name in temporel_tests %} test-temporel
+                        {% endif %}">
+
+                        <div class="flex flex-col md:flex-row justify-between gap-4">
+                            <!-- Informations principales -->
+                            <div class="flex-1">
+                                <div class="flex items-center mb-3">
+                                    <h4 class="text-lg font-bold text-gray-800 mr-3">{{ test.test_name|title }}</h4>
+                                    <span class="badge
+                                        {% if test.test_type == 'univarie' %} badge-normalite
+                                        {% elif test.test_name in moyenne_tests %} badge-moyenne
+                                        {% elif test.test_name in variance_tests %} badge-variance
+                                        {% elif test.test_name in non_param_tests %} badge-non-param
+                                        {% elif test.test_name in temporel_tests %} badge-temporel
+                                        {% endif %}">
+                                        {% if test.test_type == 'univarie' %} Normalité
+                                        {% elif test.test_name in moyenne_tests %} Moyenne
+                                        {% elif test.test_name in variance_tests %} Variance
+                                        {% elif test.test_name in non_param_tests %} Non-param
+                                        {% elif test.test_name in temporel_tests %} Temporel
+                                        {% endif %}
+                                    </span>
+                                </div>
+
+                                <div class="space-y-2 text-sm text-gray-600">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-file-alt w-5 mr-2"></i>
+                                        <span class="font-medium">Fichier:</span>
+                                        <span class="ml-2">{{ test.filename }}</span>
+                                    </div>
+
+                                    <div class="flex items-center">
+                                        <i class="fas fa-columns w-5 mr-2"></i>
+                                        <span class="font-medium">Colonnes:</span>
+                                        <span class="ml-2">{{ test.parsed_columns|join:", " }}</span>
+                                    </div>
+
+                                    <div class="flex items-center">
+                                        <i class="fas fa-calendar w-5 mr-2"></i>
+                                        <span class="font-medium">Date:</span>
+                                        <span class="ml-2">{{ test.timestamp }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Résultats et actions -->
+                            <div class="flex flex-col justify-between items-end space-y-3">
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-500">P-Value</p>
+                                    <p class="text-xl font-bold text-gray-800">{{ test.p_value|floatformat:4 }}</p>
+                                </div>
+
+                                <div class="text-center">
+                                    <span class="badge font-semibold
+                                        {% if test.p_value < 0.05 %} conclusion-negatif
+                                        {% else %} conclusion-positif
+                                        {% endif %}">
+                                        {% if test.p_value < 0.05 %} Rejet H0 (Significatif)
+                                        {% else %} Non-rejet H0 (Non-significatif)
+                                        {% endif %}
+                                    </span>
+                                </div>
+
+                                <div class="flex space-x-2">
+                                    <button onclick="viewTestDetails('{{ test.id }}')" class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 transition">
+                                        Détails
+                                    </button>
+                                    <button onclick="deleteTest('{{ test.id }}')" class="bg-red-500 text-white px-3 py-1 rounded-full text-sm hover:bg-red-600 transition">
+                                        Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Panel Prévisions ML -->
+        <div id="forecasts-panel" class="tab-panel hidden" role="tabpanel" aria-labelledby="btn-forecasts">
+            {% if total_forecasts == 0 %}
+            <!-- État vide - Aucune prévision effectuée -->
+            <div class="text-center py-16 bg-white rounded-2xl shadow-lg">
+                <div class="max-w-md mx-auto">
+                    <div class="w-24 h-24 mx-auto mb-6 bg-amber-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-chart-line text-amber-600 text-4xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Aucune prévision dans l'historique</h2>
+                    <p class="text-gray-600 mb-8">Vous n'avez pas encore effectué de prévisions ML. Commencez par analyser vos données temporelles.</p>
+                    <div class="space-y-4">
+                        <a href="{% url 'core:previsions' %}" class="inline-block bg-amber-500 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-amber-600 transition">
+                            <i class="fas fa-chart-line mr-2"></i>Effectuer une première prévision
+                        </a>
+                        <br>
+                        <a href="{% url 'core:description' %}" class="inline-block bg-gray-200 text-gray-800 px-6 py-2 rounded-full hover:bg-gray-300 transition">
+                            <i class="fas fa-book mr-2"></i>Découvrir les modèles disponibles
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Statistiques générales des prévisions -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="stat-card p-6">
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <i class="fas fa-chart-line text-3xl opacity-80"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm opacity-90">Prévisions totales</p>
+                            <p class="text-2xl font-bold">{{ total_forecasts }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <div class="flex items-center">
+                        <div class="mr-4 text-blue-600">
+                            <i class="fas fa-calendar-alt text-3xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Dernière prévision</p>
+                            <p class="text-lg font-bold text-gray-800">{{ last_forecast_date|default:"N/A" }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <div class="flex items-center">
+                        <div class="mr-4 text-purple-600">
+                            <i class="fas fa-file-csv text-3xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Fichiers analysés</p>
+                            <p class="text-2xl font-bold text-gray-800">{{ unique_forecast_files }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Outils de gestion des prévisions -->
+            <div class="mb-8 bg-white rounded-xl shadow p-6">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">Gérer l'historique des prévisions</h3>
+                        <p class="text-gray-600 text-sm">Exportez ou nettoyez vos données de prévisions</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <a href="{% url 'core:download_forecast_history' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center">
+                            <i class="fas fa-download mr-2"></i> Télécharger l'historique (CSV)
+                        </a>
+                        <button onclick="showClearForecastsConfirmation()" class="bg-red-100 text-red-800 px-4 py-2 rounded-lg hover:bg-red-200 transition flex items-center">
+                            <i class="fas fa-trash-alt mr-2"></i> Tout effacer
+                        </button>
+                        <form id="clearForecastForm" method="POST" action="{% url 'core:clear_forecast_history' %}" style="display:none;"></form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste des prévisions -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-800">Toutes les prévisions effectuées</h3>
+                    <span class="text-gray-600">{{ total_forecasts }} prévision(s)</span>
+                </div>
+                <div class="space-y-4">
+                    {% for forecast in forecast_history %}
+                    <div class="forecast-card bg-white rounded-xl shadow p-6">
+                        <div class="flex flex-col md:flex-row justify-between gap-4">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-3">
+                                    <h4 class="text-lg font-bold text-gray-800 mr-3">Prévision #{{ forecast.id }}</h4>
+                                    <span class="badge bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-semibold">{{ forecast.model_name|upper }}</span>
+                                </div>
+                                <div class="space-y-2 text-sm text-gray-600">
+                                    <div class="flex items-center"><i class="fas fa-file-alt w-5 mr-2"></i><span class="font-medium">Fichier:</span><span class="ml-2">{{ forecast.filename }}</span></div>
+                                    <div class="flex items-center"><i class="fas fa-chart-bar w-5 mr-2"></i><span class="font-medium">Colonne cible:</span><span class="ml-2">{{ forecast.target_column }}</span></div>
+                                    <div class="flex items-center"><i class="fas fa-clock w-5 mr-2"></i><span class="font-medium">Étapes:</span><span class="ml-2">{{ forecast.forecast_steps }}</span></div>
+                                    <div class="flex items-center"><i class="fas fa-calendar w-5 mr-2"></i><span class="font-medium">Date:</span><span class="ml-2">{{ forecast.timestamp }}</span></div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col justify-between items-end space-y-3">
+                                <div class="flex gap-2">
+                                    <a href="{% url 'core:download_forecast' forecast.id %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"><i class="fas fa-download mr-1"></i> Télécharger</a>
+                                </div>
+                                <div class="text-right text-sm text-gray-500">
+                                    {% if forecast.execution_time %}
+                                    <p>{{ forecast.execution_time|floatformat:2 }}s</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modale de détails de test -->
+    <div id="testDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-2xl font-bold text-gray-800" id="testModalTitle">Détails du Test</h3>
+                <button onclick="closeTestModal()" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
+            </div>
+            <div class="p-6" id="testModalBody">
+                <!-- Contenu dynamique -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale de confirmation de suppression des tests -->
+    <div id="clearTestsModal" class="modal">
+        <div class="modal-content max-w-sm">
+            <div class="p-6 text-center">
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-5xl mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Confirmation de suppression</h3>
+                <p class="text-gray-600 mb-6">Êtes-vous sûr de vouloir effacer tout l'historique des tests ? Cette action est irréversible.</p>
+                <div class="flex justify-center space-x-4">
+                    <button onclick="closeClearTestsModal()" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
+                        Annuler
+                    </button>
+                    <button onclick="clearAllTests()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                        Effacer tout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale de confirmation de suppression des prévisions -->
+    <div id="clearForecastsModal" class="modal">
+        <div class="modal-content max-w-sm">
+            <div class="p-6 text-center">
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-5xl mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Confirmation de suppression</h3>
+                <p class="text-gray-600 mb-6">Êtes-vous sûr de vouloir effacer tout l'historique des prévisions ? Cette action est irréversible.</p>
+                <div class="flex justify-center space-x-4">
+                    <button onclick="closeClearForecastsModal()" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
+                        Annuler
+                    </button>
+                    <button onclick="clearAllForecasts()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                        Effacer tout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialisation des données passées par Django
+        const totalTests = parseInt('{{ total_tests|default:0 }}');
+        const testHistory = JSON.parse('{{ test_history_json|safe|default:"[]" }}');
+        const totalForecasts = parseInt('{{ total_forecasts|default:0 }}');
+
+        // Gestion des onglets
+        const btnTests = document.getElementById('btn-tests');
+        const btnForecasts = document.getElementById('btn-forecasts');
+        const testsPanel = document.getElementById('tests-panel');
+        const forecastsPanel = document.getElementById('forecasts-panel');
+
+        function showTests() {
+            testsPanel.classList.remove('hidden');
+            forecastsPanel.classList.add('hidden');
+            btnTests.classList.add('active');
+            btnTests.setAttribute('aria-selected', 'true');
+            btnForecasts.classList.remove('active');
+            btnForecasts.setAttribute('aria-selected', 'false');
+        }
+
+        function showForecasts() {
+            forecastsPanel.classList.remove('hidden');
+            testsPanel.classList.add('hidden');
+            btnForecasts.classList.add('active');
+            btnForecasts.setAttribute('aria-selected', 'true');
+            btnTests.classList.remove('active');
+            btnTests.setAttribute('aria-selected', 'false');
+        }
+
+        btnTests.addEventListener('click', showTests);
+        btnForecasts.addEventListener('click', showForecasts);
+
+        // Démarrer avec l'onglet tests
+        showTests();
+
+        // Fonctions pour les tests
+        function viewTestDetails(testId) {
+            const test = testHistory.find(t => t.id === testId);
+            if (!test) return;
+
+            document.getElementById('testModalTitle').textContent = `Détails du Test: ${test.test_name.toUpperCase()}`;
+
+            let html = `
+                <div class="space-y-4">
+                    <p><strong>Fichier analysé:</strong> ${test.filename}</p>
+                    <p><strong>Colonnes utilisées:</strong> ${test.columns_used.join(', ')}</p>
+                    <p><strong>Date d'exécution:</strong> ${test.timestamp}</p>
+                    <hr>
+                    <p class="text-xl font-bold">Résultats Clés</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-100 p-3 rounded">
+                            <p class="text-sm text-gray-600">Statistique de Test</p>
+                            <p class="text-lg font-semibold">${test.stat_value.toFixed(4)}</p>
+                        </div>
+                        <div class="bg-gray-100 p-3 rounded">
+                            <p class="text-sm text-gray-600">P-Value</p>
+                            <p class="text-lg font-semibold ${test.p_value < 0.05 ? 'text-red-600' : 'text-green-600'}">${test.p_value.toFixed(4)}</p>
+                        </div>
+                    </div>
+                    <p class="text-xl font-bold mt-4">Interprétation</p>
+                    <div class="p-4 rounded ${test.p_value < 0.05 ? 'conclusion-negatif' : 'conclusion-positif'}">
+                        ${test.interpretation}
+                    </div>
+                    <p class="text-xl font-bold mt-4">Résultats Complets (JSON)</p>
+                    <pre class="bg-gray-800 text-white p-4 rounded text-sm overflow-x-auto">${JSON.stringify(test.full_results, null, 2)}</pre>
+                </div>
+            `;
+
+            document.getElementById('testModalBody').innerHTML = html;
+            document.getElementById('testDetailsModal').style.display = 'block';
+        }
+
+        function closeTestModal() {
+            document.getElementById('testDetailsModal').style.display = 'none';
+        }
+
+        function showClearTestsConfirmation() {
+            document.getElementById('clearTestsModal').style.display = 'block';
+        }
+
+        function closeClearTestsModal() {
+            document.getElementById('clearTestsModal').style.display = 'none';
+        }
+
+        function clearAllTests() {
+            // Cette fonction devrait envoyer une requête au serveur pour supprimer tous les tests
+            if (confirm('Êtes-vous sûr de vouloir effacer tout l\'historique des tests ? Cette action est irréversible.')) {
+                // TODO: Implement server-side clearing
+                alert('Fonctionnalité de suppression en masse à implémenter côté serveur');
+                window.location.reload();
+            }
+            closeClearTestsModal();
+        }
+
+        function deleteTest(testId) {
+            if (confirm(`Êtes-vous sûr de vouloir supprimer le test ${testId} ?`)) {
+                // TODO: Implement server-side deletion
+                alert(`Suppression du test ${testId} (Fonctionnalité à implémenter côté serveur)`);
+                window.location.reload();
+            }
+        }
+
+        // Fonctions pour les prévisions
+        function showClearForecastsConfirmation() {
+            document.getElementById('clearForecastsModal').style.display = 'block';
+        }
+
+        function closeClearForecastsModal() {
+            document.getElementById('clearForecastsModal').style.display = 'none';
+        }
+
+        function clearAllForecasts() {
+            document.getElementById('clearForecastForm').submit();
+            closeClearForecastsModal();
+        }
+
+        // Fonctions générales
+        function exportHistory(format) {
+            alert(`Exportation de l'historique au format ${format} (Fonctionnalité à implémenter côté serveur)`);
+        }
+
+        function filterTests() {
+            const filtersSection = document.getElementById('filtersSection');
+            filtersSection.classList.toggle('hidden');
+        }
+
+        function applyFilters() {
+            alert('Application des filtres (Fonctionnalité à implémenter côté serveur)');
+        }
+
+        // Initialisation du graphique (Chart.js)
+        function initChart() {
+            if (totalTests > 0) {
+                const ctx = document.getElementById('testDistributionChart').getContext('2d');
+                const testCounts = {
+                    'Normalité': testHistory.filter(t => t.test_type === 'univarie').length,
+                    'Moyenne': testHistory.filter(t => ['ttest_1samp', 'ttest_ind', 'welch'].includes(t.test_name)).length,
+                    'Variance': testHistory.filter(t => ['levene', 'bartlett', 'fligner'].includes(t.test_name)).length,
+                    'Non-paramétrique': testHistory.filter(t => ['mannwhitney', 'wilcoxon', 'kruskal'].includes(t.test_name)).length,
+                    'Séries Temporelles': testHistory.filter(t => ['adf', 'kpss', 'pp'].includes(t.test_name)).length,
+                };
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(testCounts),
+                        datasets: [{
+                            label: 'Nombre de Tests',
+                            data: Object.values(testCounts),
+                            backgroundColor: [
+                                '#3b82f6', // blue
+                                '#10b981', // green
+                                '#f59e0b', // yellow
+                                '#8b5cf6', // purple
+                                '#ef4444', // red
+                            ],
+                            borderColor: [
+                                '#1e40af',
+                                '#065f46',
+                                '#92400e',
+                                '#5b21b6',
+                                '#991b1b',
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Exécuter l'initialisation après le chargement du DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+        });
+    </script>
+{% endblock %}

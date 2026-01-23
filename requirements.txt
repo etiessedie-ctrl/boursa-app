@@ -1,5 +1,5 @@
 # Dépendances de base pour Django
-Django==6.0.1
+Django==5.0.4
 python-decouple==3.8
 gunicorn==21.2.0
 whitenoise==6.11.0
